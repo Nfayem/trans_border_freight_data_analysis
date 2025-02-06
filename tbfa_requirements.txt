@@ -1,0 +1,41 @@
+# Lazy Imports for Faster Prototyping  
+pyforest  # Auto-imports common libraries to speed up exploratory data analysis  
+
+# Automated Exploratory Data Analysis (EDA)  
+pandas-profiling  # Generates an in-depth report of a DataFrame (EDA automation)
+ydata-profiling  
+sweetviz  # Creates visualized comparisons between datasets for EDA  
+
+# Data Handling and Manipulation  
+pandas
+numpy
+xlrd  # Only needed for legacy .xls files (Excel 97-2003)
+openpyxl  # Required for handling .xlsx files
+xlsxwriter  # Used for writing Excel files with formatting  
+
+# Data Visualization  
+matplotlib
+seaborn
+plotly  
+
+# Statistical and Scientific Computing  
+scipy  
+
+# Reporting and Documentation  
+pypandoc  # Converts between document formats (Markdown, PDF, Word)
+python-docx  # For creating and editing Word documents  
+
+# Version Control  
+gitpython  # Interact with Git repositories in Python  
+
+# Geographic Data & Mapping  
+geopandas  # Handling geospatial data  
+folium  # Creating interactive maps with Leaflet.js  
+
+# Carbon Footprint Estimation  
+CO2eq  # Calculate carbon emissions based on activity data
+codecarbon  
+
+# Dashboarding for Final Reporting  
+dash  # Web-based dashboards for data visualization  
+dash-bootstrap-components  # Styling for Dash applications (optional but useful)  
