@@ -44,15 +44,5 @@ git commit -m "Renamed submodule from Azubian_pred_app to new-name"
 git submodule sync
 
 
-# ==============================
-# Example Usage of Automated EDA
-# ==============================
-# Uncomment below for quick exploratory reports
-# df = pd.read_csv("your_data.csv")
-# profile = ProfileReport(df, title="EDA Report")
-# profile.to_file("eda_report.html")
-
-# sweetviz_report = sv.analyze(df)
-# sweetviz_report.show_html("sweetviz_report.html")
 
 

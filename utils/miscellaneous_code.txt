@@ -1,0 +1,773 @@
+# ==============================
+# Example Usage of Automated EDA
+# ==============================
+# Uncomment below for quick exploratory reports
+# df = pd.read_csv("your_data.csv")
+# profile = ProfileReport(df, title="EDA Report")
+# profile.to_file("eda_report.html")
+
+# sweetviz_report = sv.analyze(df)
+# sweetviz_report.show_html("sweetviz_report.html")
+
+
+# Replace values in DataFrame while preserving missing values
+final_df["TRDTYPE"] = final_df["TRDTYPE"].map(trade_type_dict, na_action='ignore')
+final_df["USASTATE"] = final_df["USASTATE"].map(us_state_dict, na_action='ignore')
+final_df["CANPROV"] = final_df["CANPROV"].map(canadian_prov_dict, na_action='ignore')
+final_df["MEXSTATE"] = final_df["MEXSTATE"].map(mexican_state_dict, na_action='ignore')
+final_df["COUNTRY"] = final_df["COUNTRY"].map(country_dict, na_action='ignore')
+final_df["DISAGMOT"] = final_df["DISAGMOT"].map(disagm_dict, na_action='ignore')
+final_df["CONTCODE"] = final_df["CONTCODE"].map(container_code_dict, na_action='ignore')
+final_df["DF"] = final_df["DF"].map(df_dict, na_action='ignore')
+
+
+# Define the chunk size (number of rows per chunk)
+chunksize = 10_000  
+
+# Read the large CSV file in chunks
+for chunk in pd.read_csv("large_file.csv", chunksize=chunksize):  
+    # Process each chunk as a DataFrame  
+    print(chunk.head())  # Example operation (prints the first 5 rows of each chunk)
+
+
+# Read large CSV file using Dask  
+df = dd.read_csv("large_file.csv")  
+
+# Compute and display the first few rows  
+print(df.head())  # Dask requires computation before displaying results  
+
+# Dask handles large datasets efficiently and supports parallel processing.
+
+
+# Function to analyze and plot numerical features
+def plot_num_features(data, features, title_fontsize=16, label_fontsize=14, tick_labelsize=12):
+    # Ensure the selected columns are numerical
+    numerical_features = [col for col in features if col in data.select_dtypes(include=['float64', 'int64']).columns]
+
+    # Loop through each numerical feature
+    for col in numerical_features:
+        # Calculate skewness and kurtosis
+        skewness = round(data[col].skew(), 2)
+        kurtosis = round(data[col].kurtosis(), 2)
+
+        # Calculate basic statistics
+        mean = round(data[col].mean(), 2)
+        median = round(data[col].median(), 2)
+        std_dev = round(data[col].std(), 2)
+
+        # Print statistics
+        print(f"Column: {col}")
+        print(f"Skewness: {skewness}")
+        print(f"Kurtosis: {kurtosis}")
+        print(f"Mean: {mean}")
+        print(f"Median: {median}")
+        print(f"Standard Deviation: {std_dev}")
+        print("_" * 40)
+
+        # Plot histograms with KDE and boxplots
+        plt.figure(figsize=(20, 6))
+
+        # Histogram with KDE
+        plt.subplot(1, 2, 1)
+        sns.histplot(data[col], kde=True, color='darkviolet', edgecolor='black')
+        plt.axvline(mean, color='red', linestyle='dashed', linewidth=2, label=f'Mean: {mean}')
+        plt.axvline(median, color='green', linestyle='dashed', linewidth=2, label=f'Median: {median}')
+        plt.title(f'Distribution of {col}', fontsize=title_fontsize)
+        plt.xlabel(col, fontsize=label_fontsize)
+        plt.ylabel('Count', fontsize=label_fontsize)
+        plt.xticks(fontsize=tick_labelsize)
+        plt.yticks(fontsize=tick_labelsize)
+        plt.legend()
+
+        # Boxplot
+        plt.subplot(1, 2, 2)
+        sns.boxplot(x=data[col], color='skyblue')
+        plt.title(f'Boxplot of {col}', fontsize=title_fontsize)
+        plt.xlabel(col, fontsize=label_fontsize)
+        plt.xticks(fontsize=tick_labelsize)
+
+        # Display plot 
+        plt.tight_layout()
+        plt.show()
+
+# Plot Categorical distributions
+plot_num_features(
+    data=final_eda_df, 
+    features=num_features, 
+    title_fontsize=16, 
+    label_fontsize=14, 
+    tick_labelsize=12
+)
+
+
+# Identify feature for detailed numerical analysis
+commodity_feature = num_features[0]
+
+# Calculate skewness and kurtosis
+skewness = round(final_eda_df[commodity_feature].skew(), 2)
+kurtosis = round(final_eda_df[commodity_feature].kurtosis(), 2)
+
+# Calculate basic statistics
+mean = round(final_eda_df[commodity_feature].mean(), 2)
+median = round(final_eda_df[commodity_feature].median(), 2)
+std_dev = round(final_eda_df[commodity_feature].std(), 2)
+
+# Print column name and its statistics
+print(f"Column: {commodity_feature}")
+print(f"Skewness: {skewness}")
+print(f"Kurtosis: {kurtosis}")
+print(f"Mean: {mean}")
+print(f"Median: {median}")
+print(f"Standard Deviation: {std_dev}")
+print("_" * 40)
+
+# Plot histograms with KDE and boxplots
+plt.figure(figsize=(20, 6))
+
+# Histogram with KDE
+plt.subplot(1, 2, 1)
+sns.histplot(final_eda_df[commodity_feature], kde=True, color='darkviolet', edgecolor='black')
+plt.axvline(mean, color='red', linestyle='dashed', linewidth=2, label=f'Mean: {mean}')
+plt.axvline(median, color='green', linestyle='dashed', linewidth=2, label=f'Median: {median}')
+plt.title(f'Distribution of {commodity_feature}')
+plt.xlabel(commodity_feature)
+plt.ylabel('Count')
+plt.legend()
+
+# Boxplot
+plt.subplot(1, 2, 2)
+sns.boxplot(x=final_eda_df[commodity_feature], color='skyblue')
+plt.title(f'Boxplot of {commodity_feature}')
+
+# Display plot 
+plt.tight_layout()
+plt.show()
+
+
+def analyse_num_feature(data, feature):
+
+    if feature not in data.columns:
+        print(f"Feature '{feature}' not found in the dataset.")
+        return
+    
+    # df_sampled = data.sample(n=min(0.2*len(data), len(data)), random_state=42)
+    
+    # Calculate statistics
+    skewness = round(data[feature].skew(), 2)
+    kurtosis = round(data[feature].kurtosis(), 2)
+    mean = round(data[feature].mean(), 2)
+    median = round(data[feature].median(), 2)
+    std_dev = round(data[feature].std(), 2)
+
+    # Print statistics
+    print(f"Column: {feature}")
+    print(f"Skewness: {skewness}")
+    print(f"Kurtosis: {kurtosis}")
+    print(f"Mean: {mean}")
+    print(f"Median: {median}")
+    print(f"Standard Deviation: {std_dev}")
+    print("_" * 40)
+
+    # Plot histograms with KDE and boxplots
+    plt.figure(figsize=(20, 6))
+
+    # Histogram with KDE
+    plt.subplot(1, 2, 1)
+    sns.histplot(data[feature], kde=True, color='darkviolet', edgecolor='black')
+    plt.axvline(mean, color='red', linestyle='dashed', linewidth=2, label=f'Mean: {mean}')
+    plt.axvline(median, color='green', linestyle='dashed', linewidth=2, label=f'Median: {median}')
+    plt.title(f'Distribution of {feature}')
+    plt.xlabel(feature)
+    plt.ylabel('Count')
+    plt.legend()
+
+    # Boxplot
+    plt.subplot(1, 2, 2)
+    sns.boxplot(x=data[feature], color='skyblue')
+    plt.title(f'Boxplot of {feature}')
+
+    # Display plot 
+    plt.tight_layout()
+    plt.show()
+
+# Analyse selected numerical feature
+analyse_num_feature(final_eda_df, 'COMMODITY2')
+
+
+# Select numeric features for analysis
+features = num_features
+
+# Initialize dictionary to store results
+summary_stats = {}
+
+# Calculate statistics for each feature
+for feature in features:
+    data = final_eda_df[feature].dropna()
+    
+    summary_stats[feature] = {
+        "count": data.count(),
+        "mean": data.mean(),
+        "Median": data.median(),
+        "std": data.std(),
+        "skewness": data.skew(),
+        "kurtosis": data.kurtosis()
+    }
+
+# Convert dictionary to a readable DataFrame
+summary_df = pd.DataFrame(summary_stats).T  
+
+# Display results
+summary_df
+
+
+def analyse_num_features(data, features):
+
+    for feature in features:
+        # Create figure with subplots
+        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+        ## Histogram with KDE
+        # Histogram
+        axes[0].hist(data[feature], bins=50, alpha=0.5, color="violet", edgecolor="black", density=True, label="Histogram")
+
+        # KDE
+        sns.kdeplot(data[feature], color="darkviolet", linewidth=2, label="KDE", ax=axes[0])
+
+        # Titles & Labels
+        axes[0].legend()
+        axes[0].set_title(f"Histogram & KDE of {feature}", fontsize=14, fontweight="bold")
+        axes[0].set_xlabel(feature, fontsize=12)
+        axes[0].set_ylabel("Density", fontsize=12)
+
+        ## Box Plot
+        sns.boxplot(y=data[feature], color="skyblue", ax=axes[1])
+
+        # Title & Labels
+        axes[1].set_ylabel(feature, fontsize=12)
+        axes[1].set_title(f"Box Plot of {feature}", fontsize=12, fontweight="bold")
+
+        # Adjust layout and show plot
+        plt.tight_layout()
+        plt.show()
+
+# Analyse numeric features
+analyse_num_features(final_eda_df, num_features)
+
+
+# Load data
+sampled_df = final_eda_df.sample(frac=0.2, random_state=42)
+
+# Create figure with subplots: Histogram & KDE (Top), Box Plot (Bottom)
+fig, axes = plt.subplots(2, 1, figsize=(10, 8), gridspec_kw={'height_ratios': [3, 1]})
+
+## 🔹 1. Histogram with KDE (Upper Plot)
+# Histogram: Full dataset (red)
+axes[0].hist(final_eda_df["SHIPWT"], bins=50, alpha=0.5, color="red", edgecolor="black", label="Full Dataset", density=True)
+
+# Histogram: Sampled dataset (green)
+axes[0].hist(sampled_df["SHIPWT"], bins=50, alpha=0.5, color="green", edgecolor="black", label="Sampled (20%)", density=True)
+
+# KDE: Full dataset (dark red)
+sns.kdeplot(final_eda_df["SHIPWT"], color="darkred", linewidth=2, label="Full Dataset KDE", ax=axes[0])
+
+# KDE: Sampled dataset (dark green)
+sns.kdeplot(sampled_df["SHIPWT"], color="darkgreen", linewidth=2, label="Sampled (20%) KDE", ax=axes[0])
+
+# Titles & Labels
+axes[0].legend()
+axes[0].set_title("Comparison of Original vs. Sampled Data Distribution", fontsize=14, fontweight="bold")
+axes[0].set_xlabel("SHIPWT", fontsize=12)
+axes[0].set_ylabel("Density", fontsize=12)
+
+## 🔹 2. Box Plot (Lower Plot)
+sns.boxplot(data=[final_eda_df["SHIPWT"], sampled_df["SHIPWT"]], 
+            palette=["red", "green"], ax=axes[1])
+
+# Set x-axis labels
+axes[1].set_xticklabels(["SHIPWT"])
+axes[1].set_ylabel("Count")
+axes[1].set_title("Box Plot of Full vs. Sampled Data", fontsize=12, fontweight="bold")
+
+# Adjust layout and show plot
+plt.tight_layout()
+plt.show()
+
+
+# Load data
+sampled_df = final_eda_df.sample(frac=0.2, random_state=42)
+
+# Create figure
+plt.figure(figsize=(10, 5))
+
+# Histogram: Full dataset (red)
+plt.hist(final_eda_df["SHIPWT"], bins=50, alpha=0.5, color="red", edgecolor="black", label="Full Dataset", density=True)
+
+# Histogram: Sampled dataset (green)
+plt.hist(sampled_df["SHIPWT"], bins=50, alpha=0.5, color="green", edgecolor="black", label="Sampled (20%)", density=True)
+
+# KDE: Full dataset (red)
+sns.kdeplot(final_eda_df["SHIPWT"], color="darkred", linewidth=2, label="Full Dataset KDE")
+
+# KDE: Sampled dataset (green)
+sns.kdeplot(sampled_df["SHIPWT"], color="darkgreen", linewidth=2, label="Sampled (20%) KDE")
+
+# Labels and title
+plt.legend()
+plt.title("Comparison of Original vs. Sampled Data Distribution", fontsize=14, fontweight="bold")
+plt.xlabel("SHIPWT", fontsize=12)
+plt.ylabel("Density", fontsize=12)
+
+# Show plot
+plt.show()
+
+
+# Boxplot of Freight Charges by Transportation Mode
+plt.figure(figsize=(12, 6))
+sns.boxplot(data=final_eda_df, x='DISAGMOT', y='FREIGHT_CHARGES')
+plt.xticks(rotation=45)
+plt.title('Freight Charges by Transportation Mode')
+plt.show()
+
+
+
+### **Business Question:**  
+**Which U.S. states trade more with Canada and which trade more with Mexico?**  
+
+### **Purpose:**  
+To identify the top trading states for Canada and Mexico, enabling policymakers and businesses to optimize trade routes, allocate resources efficiently, and strengthen cross-border trade relationships.  
+
+---
+
+### **Python Code to Analyze Trade Volumes by U.S. State**  
+This code aggregates trade volumes (based on `VALUE`) for U.S. states trading with **Canada (`COUNTRY=1220`)** and **Mexico (`COUNTRY=2010`)**.
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Sample dataset structure
+# final_eda_df = pd.read_csv('your_data.csv')  # Load dataset
+
+# Filter for Canada and Mexico trade
+trade_canada = final_eda_df[final_eda_df['COUNTRY'] == 1220]
+trade_mexico = final_eda_df[final_eda_df['COUNTRY'] == 2010]
+
+# Aggregate trade value by U.S. state
+trade_canada_by_state = trade_canada.groupby('USASTATE')['VALUE'].sum().reset_index()
+trade_mexico_by_state = trade_mexico.groupby('USASTATE')['VALUE'].sum().reset_index()
+
+# Merge for side-by-side comparison
+trade_comparison = trade_canada_by_state.merge(
+    trade_mexico_by_state, on='USASTATE', how='outer', suffixes=('_Canada', '_Mexico')
+).fillna(0)
+
+# Identify top trading states for each country
+top_canada_states = trade_comparison.nlargest(10, 'VALUE_Canada')
+top_mexico_states = trade_comparison.nlargest(10, 'VALUE_Mexico')
+
+# Plot results
+fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+
+# Canada Trade
+ax[0].barh(top_canada_states['USASTATE'], top_canada_states['VALUE_Canada'], color='blue')
+ax[0].set_title('Top U.S. States Trading with Canada')
+ax[0].set_xlabel('Trade Value (USD)')
+
+# Mexico Trade
+ax[1].barh(top_mexico_states['USASTATE'], top_mexico_states['VALUE_Mexico'], color='red')
+ax[1].set_title('Top U.S. States Trading with Mexico')
+ax[1].set_xlabel('Trade Value (USD)')
+
+plt.tight_layout()
+plt.show()
+```
+
+---
+
+### **Insights Gained from This Analysis:**  
+- Which states contribute **most to trade with Canada** vs. **Mexico**  
+- Comparison of trade values across different states  
+- Opportunities for **infrastructure improvements** to facilitate trade  
+- Strategic planning for **supply chain optimization**  
+
+Would you like any enhancements, such as a **time trend analysis** to see how trade has evolved over the years? 🚀
+
+
+# Group by transport mode before and after disruption
+pre_disruption = final_eda_df[final_eda_df['YEAR'] == 2020].groupby('DISAGMOT')['SHIPWT'].sum()
+post_disruption = final_eda_df[final_eda_df['YEAR'] == 2023].groupby('DISAGMOT')['SHIPWT'].sum()
+
+# Create comparison DataFrame
+mode_comparison = pd.DataFrame({'2020': pre_disruption, '2023': post_disruption}).fillna(0)
+mode_comparison['Change (%)'] = ((mode_comparison['2023'] - mode_comparison['2020']) / mode_comparison['2020']) * 100
+
+# Reset index for plotting
+mode_comparison = mode_comparison.reset_index()
+
+# Melt DataFrame for Seaborn compatibility
+mode_comparison_melted = mode_comparison.melt(id_vars=['DISAGMOT'], value_vars=['2020', '2023'], 
+                                              var_name='Year', value_name='Total_Ship_Weight')
+
+# Plot mode shifts
+plt.figure(figsize=(12, 8))
+ax = sns.barplot(data=mode_comparison_melted, x='DISAGMOT', y='Total_Ship_Weight', hue='Year', palette='viridis')
+
+# Add data labels on top of bars
+for p in ax.patches:
+    if p.get_height() > 0:
+        ax.annotate(f'{p.get_height()/1e9:.1f}B',
+                    (p.get_x() + p.get_width() / 2, p.get_height()),  
+                    ha='center', va='bottom', fontsize=12, color='black')
+
+# Set title and labels
+plt.title('Freight Transport Mode Shifts (2020 vs. 2023)', fontsize=16)
+plt.xlabel('Mode of Transport', fontsize=14)
+plt.ylabel('Total Shipping Weight (Billion kg)', fontsize=14)
+plt.legend(title='Year', fontsize=12)
+ax.set_xticks(range(len(mode_comparison['DISAGMOT'])))
+ax.set_xticklabels(mode_comparison['DISAGMOT'].astype(str), rotation=45)
+
+plt.tight_layout()
+plt.show()
+
+# Display results
+mode_comparison.sort_values(by='Change (%)', ascending=True)
+
+
+# Sample the original dataset
+sampled_df = final_eda_df.sample(frac=0.0000015, random_state=42)
+
+# Initialize geolocator with caching enabled
+geolocator = Nominatim(user_agent="freight_distance_estimator", timeout=10)
+
+# Dictionary to store previously retrieved coordinates
+location_cache = {}
+
+# Function to get coordinates
+def get_coordinates(location):
+    if pd.isna(location):
+        return None
+
+    if location in location_cache:
+        return location_cache[location]
+
+    try:
+        loc = geolocator.geocode(location)
+        if loc:
+            location_cache[location] = (loc.latitude, loc.longitude)
+            return (loc.latitude, loc.longitude)
+    except Exception as e:
+        print(f"Geocoding error for {location}: {e}")
+    
+    return None
+
+# Function to estimate distance
+def estimate_distance(row):
+    origin = get_coordinates(row['USASTATE'])
+    destination = get_coordinates(row['MEXSTATE']) or get_coordinates(row['CANPROV'])
+
+    if origin and destination:
+        return geodesic(origin, destination).kilometers
+    return None 
+
+# Apply function with progress tracking
+tqdm.pandas()
+sampled_df['ESTIMATED_DISTANCE'] = sampled_df.progress_apply(estimate_distance, axis=1)
+
+# Display results
+sampled_df[['USASTATE', 'MEXSTATE', 'CANPROV', 'ESTIMATED_DISTANCE']]
+
+
+
+# Initialize geolocator with caching enabled
+geolocator = Nominatim(user_agent="freight_distance_estimator", timeout=10)
+
+# Dictionary to store previously retrieved coordinates
+location_cache = {}
+
+# Function to get coordinates
+def get_coordinates(location):
+    if pd.isna(location):
+        return None
+
+    if location in location_cache:
+        return location_cache[location]
+
+    try:
+        loc = geolocator.geocode(location)
+        if loc:
+            location_cache[location] = (loc.latitude, loc.longitude)
+            return (loc.latitude, loc.longitude)
+    except Exception as e:
+        print(f"Geocoding error for {location}: {e}")
+    
+    return None
+
+# Function to estimate distance
+def estimate_distance(row):
+    origin = get_coordinates(row['USASTATE'])
+    destination = get_coordinates(row['MEXSTATE']) or get_coordinates(row['CANPROV'])
+
+    if origin and destination:
+        return geodesic(origin, destination).kilometers
+    return None 
+
+# Apply function with progress tracking
+tqdm.pandas()
+final_eda_df['ESTIMATED_DISTANCE'] = final_eda_df.progress_apply(estimate_distance, axis=1)
+
+# Display results
+final_eda_df[['USASTATE', 'MEXSTATE', 'CANPROV', 'ESTIMATED_DISTANCE']]
+
+
+
+# Enable tqdm progress tracking
+tqdm.pandas()
+
+# Compute actual average shipment weight per mode
+avg_shipwt_per_mode = final_eda_df.groupby("DISAGMOT")["SHIPWT"].mean().to_dict()
+
+# Map DISAGMOT to CO₂ emission transport modes
+disagmot_to_mode = {
+    "Air": "AIRPLANE",       
+    "Truck": "BUS",     
+    "Vessel": "FERRY",        
+    "Rail": "LIGHT_RAIL",
+}
+
+# Function to estimate CO2 emissions
+def estimate_co2(row):
+    distance_km = row["ESTIMATED_DISTANCE"]
+    
+    # Get the mapped transport mode
+    mode = disagmot_to_mode.get(row["DISAGMOT"])
+    
+    # If the mode is not in the mapped list, return 0 (no emissions)
+    if mode is None:
+        return 0
+    
+    try:
+        return transport_co2.estimate_co2(mode=mode, distance_in_km=distance_km)
+    except Exception as e:
+        print(f"Error processing row {row.name}: {e}")
+        return None
+
+# Apply function to dataset
+final_eda_df["CO2_EMISSIONS"] = final_eda_df.progress_apply(estimate_co2, axis=1)
+
+# Display results
+final_eda_df[["DISAGMOT", "ESTIMATED_DISTANCE", "CO2_EMISSIONS"]]
+
+
+
+`Comment`
+
+**Distance Estimation Timing**  
+After running the code for estimating distance on **10 rows, 10 times**, the **average operation speed** was found to be **16.29 seconds per 10 rows**. Execution time varied **between 15.2 and 18.8 seconds** for 10-row samples.   
+
+**Sampling Table with New Timing Estimates**
+| Sample %  | Sample Size (Estimated) | Purpose & Trade-offs | Feasibility | Estimated Time (Seconds) |
+|-----------|--------------------------|----------------------|-------------|--------------------------|
+| **0.00015%** | **10 rows** | Extremely small dataset, fastest processing, but highly unreliable trends | ✅ Best for debugging, but not useful for real insights | **~16.29 sec (~0.3 min)** |
+| **0.01%** | **650 rows** | Minimal dataset, very fast but may not capture all trends | ✅ Extremely fast, but risk of missing key insights | **~1,059 sec (~17.7 min)** |
+| **0.02%** | **1,300 rows** | Slightly larger, quick exploratory analysis | ✅ Safest within 1-hour, but may still miss rare patterns | **~2,118 sec (~35.3 min)** |
+| **0.03%** | **1,950 rows** | More data points, still fast but better representation | ✅ Still within 1-hour range, better for early trends | **~3,177 sec (~53 min)** |
+| **0.05%** | **3,250 rows** | Efficient but slow for large-scale operations | ⚠️ Slightly exceeds 1-hour, but provides better insight | **~5,301 sec (~1.5 hours)** |
+| **1%** | **65,000 rows** | Quick exploratory analysis | ❌ Highly detailed, but impractical for frequent runs | **~106,885 sec (~29.7 hours)** |
+| **5%** | **325,000 rows** | Balanced speed & accuracy | ❌ Captures trends well, but processing time is significant | **~534,425 sec (~6.2 days)** |
+| **10%** | **650,000 rows** | Strong statistical representation | ❌ Reliable for deep patterns, but very costly in time | **~1.068M sec (~12.4 days)** |
+| **20%** | **1.3M rows** | High accuracy, detailed | ❌ Too slow for iterative analysis, best for final validation | **~2.137M sec (~24.7 days)** |
+| **50%+** | **3.25M+ rows** | Near full dataset | ❌ Massive memory demand, impractical for sampling | **~5.344M sec (~61.9 days)** |
+
+**Key Takeaways:**
+1️. Optimal Sampling for <1 Hour  
+   - **0.02% (~1,300 rows)** is safest, completing in **~35.3 min**.  
+   - **0.03% (~1,950 rows)** is still under 1 hour **(~53 min)**.  
+
+2️. **0.05% (~3,250 rows)** starts to exceed 1 hour**, taking **~1.5 hours**, making it slightly impractical for rapid iterations.  
+
+3️. Higher sampling (>1%) becomes infeasible unless distributed computing is used.  
+
+
+def analyze_feature_sampling(final_eda_df, feature_fractions):
+
+    num_features = len(feature_fractions)
+    
+    # Create subplots: One histogram + KDE plot per feature
+    fig, axes = plt.subplots(num_features, 1, figsize=(12, 8 * num_features), squeeze=False)
+
+    for idx, (feature, fractions) in enumerate(feature_fractions.items()):
+        ax = axes[idx, 0] 
+
+        ## Histogram & KDE for Full Dataset
+        ax.hist(final_eda_df[feature], bins=50, alpha=0.5, color="red", edgecolor="black", label="Full Dataset", density=True)
+        sns.kdeplot(final_eda_df[feature], color="darkred", linewidth=2, label="Full Dataset KDE", ax=ax)
+
+        ## Loop through each fraction & plot
+        for frac in fractions:
+            sampled_df = final_eda_df.sample(frac=frac, random_state=42)
+
+            # Add Histogram & KDE for sampled data
+            ax.hist(sampled_df[feature], bins=50, alpha=0.5, edgecolor="black", label=f"Sampled ({frac*100}%)", density=True)
+            sns.kdeplot(sampled_df[feature], linewidth=2, label=f"Sampled ({frac*100}%) KDE", ax=ax)
+
+        ## Customize Histogram & KDE plot
+        ax.legend()
+        ax.set_title(f"Distribution of Original vs. Sampled Data - {feature}", fontsize=16)
+        ax.set_xlabel(feature, fontsize=14)
+        ax.set_ylabel("Density", fontsize=14)
+
+    # Adjust layout and show plot
+    plt.tight_layout()
+    plt.show()
+
+# Compare the sampled datasets to the original dataset
+feature_sampling = {
+    "SHIPWT": [0.0001, 0.0002, 0.0003, 0.0005, 0.05, 0.1, 0.2]
+}
+analyze_feature_sampling(final_eda_df, feature_sampling)
+
+
+**Kolmogorov-Smirnov (KS) test**
+
+The KS test checks whether two samples come from the same distribution.  
+- **Null Hypothesis (H₀):** The sampled data follows the same distribution as the full dataset.  
+- **Alternative Hypothesis (H₁):** The sampled data is significantly different from the full dataset.  
+
+If **p-value > 0.05**, we **fail to reject H₀** → The sample preserves the original distribution.  
+If **p-value < 0.05**, we **reject H₀** → The sample does not preserve the original distribution.
+
+
+# Define sampling percentages
+sample_sizes = [0.0001, 0.0002, 0.0003, 0.0005, 0.05, 0.1, 0.2]
+features = ["SHIPWT"]
+
+# Store KS test results
+ks_results = {}
+
+for frac in sample_sizes:
+    sampled_df = final_eda_df.sample(frac=frac, random_state=42)
+    
+    ks_results[frac] = {}
+    
+    for feature in features:
+        stat, p_value = ks_2samp(final_eda_df[feature], sampled_df[feature])
+        ks_results[frac][feature] = {"KS Statistic": stat, "p-value": p_value}
+
+# Convert results to DataFrame
+ks_results_df = pd.DataFrame.from_dict(
+    {(i, j): ks_results[i][j] for i in ks_results.keys() for j in ks_results[i].keys()},
+    orient='index'
+).reset_index()
+
+ks_results_df.columns = ["Sample Size", "Feature", "KS Statistic", "p-value"]
+ks_results_df
+
+
+
+`Comment`
+
+**🚀 Key Observations from the KS Test Results:**
+| **Sample %** | **KS Statistic** | **p-value** | **Interpretation** |
+|-------------|---------------|-----------|----------------|
+| **0.01% (0.0001)** | 0.0416 | 0.2052 | Moderate KS, **p > 0.05**, suggesting weak similarity. Sample is too small. |
+| **0.02% (0.0002)** | 0.0340 | 0.0969 | Slightly better than 0.01%, but still **p < 0.1** (uncertain representativeness). |
+| **0.03% (0.0003)** | 0.0308 | 0.0485 | **KS decreases**, but **p ≈ 0.05**, meaning borderline similarity. |
+| **0.05% (0.0005)** | 0.0179 | 0.2435 | **Much lower KS**, **p > 0.05**, suggesting strong representativeness. |
+| **5.00% (0.0500)** | 0.0008 | 0.9783 | **Very strong match**, highly representative of the full dataset. |
+| **10.00% (0.1000)** | 0.0008 | 0.8392 | Similar to 5%, no major improvement. |
+| **20.00% (0.2000)** | 0.0004 | 0.9911 | **Nearly perfect representation**. |
+
+**Best Sampling Choices for Speed & Accuracy**  
+
+- 0.02% (~1,300 rows) or 0.03% (~1,950 rows) → Faster but may miss rare patterns.
+  
+- 5%+ (~65,000+ rows) → Highly accurate but too slow for quick analysis.
+  
+- Optimal Trade-off is 0.05% (~3,250 rows) 
+  - Strong representativeness (p > 0.05), minimal deviation from full dataset.  
+  - More computationally efficient than 5% or higher samples.
+
+
+
+
+ # Sample the original dataset
+sampled_df = final_eda_df.sample(frac=0.01, random_state=42)
+
+# Fit regression model
+formula = 'FREIGHT_CHARGES ~ C(DISAGMOT) + SHIPWT + VALUE'
+with tqdm(total=1, desc="Fitting Model", bar_format="{l_bar}{bar} [ time elapsed: {elapsed} ]") as pbar:
+    model = sm.OLS.from_formula(formula, data=sampled_df).fit()
+    pbar.update(1)
+
+# Extract model parameters
+params = model.params
+intercept = params["Intercept"]
+shipwt_coef = params["SHIPWT"]
+value_coef = params["VALUE"]
+
+# Extract categorical coefficients efficiently
+disagmot_coefs = {k.split("[T.")[1].rstrip("]"): v for k, v in params.items() if "C(DISAGMOT)" in k}
+
+# Construct regression equation dynamically
+regression_eq = f"Freight Charges = {intercept:.2f} + ({shipwt_coef:.2f} * SHIPWT) + ({value_coef:.2f} * VALUE)"
+regression_eq += "".join([f" + ({coef:.2f} * {mode})" for mode, coef in disagmot_coefs.items()])
+
+# Residual plot with tqdm progress tracking
+with tqdm(total=1, desc="\nPlotting Residuals", bar_format="{l_bar}{bar} [ time elapsed: {elapsed} ]") as pbar:
+    plt.figure(figsize=(12, 8))
+    sns.residplot(x=model.fittedvalues.values, y=model.resid.values, lowess=True, color='red')
+    plt.title('Residual Plot: Model Fit for Freight Charges', fontsize=16)
+    plt.xlabel('Predicted Freight Charges', fontsize=14)
+    plt.ylabel('Residuals', fontsize=14)
+    plt.axhline(y=0, linestyle='--', color='black')
+    
+
+    # Add regression equation to plot
+    plt.figtext(0.15, -0.01, regression_eq, fontsize=7, fontweight='bold', color="blue", bbox=dict(facecolor='white', alpha=0.5))
+
+    plt.show()
+    pbar.update(1)
+
+# Display results
+print("\nThe regression equation is:")
+print(regression_eq)
+model.summary()
+
+
+
+# Fit regression model
+formula = 'FREIGHT_CHARGES ~ C(DISAGMOT) + SHIPWT + VALUE'
+model = sm.OLS.from_formula(formula, data=final_eda_df).fit()
+
+# Display regression summary
+print(model.summary())
+
+# Extract model coefficients
+intercept = model.params["Intercept"]
+shipwt_coef = model.params["SHIPWT"]
+value_coef = model.params["VALUE"]
+
+# Extract DISAGMOT coefficients dynamically
+disagmot_coefs = {k: v for k, v in model.params.items() if "C(DISAGMOT)" in k}
+
+# Create regression equation string
+regression_eq = f"Freight Charges = {intercept:.2f} + ({shipwt_coef:.2f} * SHIPWT) + ({value_coef:.2f} * VALUE)"
+
+# Append DISAGMOT coefficients
+for mode, coef in disagmot_coefs.items():
+    mode_name = mode.split("[T.")[1].rstrip("]")
+    regression_eq += f" + ({coef:.2f} * {mode_name})"
+
+# Residual plot
+plt.figure(figsize=(8, 6))
+sns.residplot(x=model.fittedvalues, y=model.resid, lowess=True, color='red')
+plt.axhline(y=0, linestyle='--', color='black')
+plt.xlabel('Predicted Freight Charges')
+plt.ylabel('Residuals')
+plt.title('Residual Plot: Model Fit for Freight Charges')
+
+# Add regression equation to plot
+plt.figtext(0.15, 0.85, regression_eq, fontsize=10, color="blue", bbox=dict(facecolor='white', alpha=0.5))
+
+plt.show()
